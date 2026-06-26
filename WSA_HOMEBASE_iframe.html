@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>WSA OPERATION : HOME BASE 2.0</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0f1923}
+.screen{
+  display:none;
+  position:fixed;inset:0;
+  width:100%;height:100%;
+  border:none;
+}
+.screen.active{display:block}
+</style>
+</head>
+<body>
+<iframe id="s-start" class="screen active" src="screens/screen01_start.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-stage1" class="screen " src="screens/screen02_stage1.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-paper1" class="screen " src="screens/paper1_stage1.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-stage2" class="screen " src="screens/screen03_stage2.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-paper2" class="screen " src="screens/paper2_stage2.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-stage3" class="screen " src="screens/screen04_stage3.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-paper3" class="screen " src="screens/paper3_stage3.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-stage4" class="screen " src="screens/screen05_stage4.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-stage5" class="screen " src="screens/screen06_stage5.html" frameborder="0" allowtransparency="true"></iframe>
+<iframe id="s-vote" class="screen " src="screens/screen07_vote.html" frameborder="0" allowtransparency="true"></iframe>
+
+<script>
+var _cur = 's-start';
+var _hist = [];
+var WSA_GROUP = '';
+
+// 화면 전환 - iframe에서 parent.gotoScreen()으로 호출
+function gotoScreen(id) {
+  if(id === 's-setup') {
+    var s01f = document.getElementById('s-start');
+    if(s01f){ s01f.classList.add('active'); _cur='s-start';
+      try{s01f.contentWindow.goToSetup_internal();}catch(e){} }
+    return;
+  }
+  var old = document.getElementById(_cur);
+  if(old) old.classList.remove('active');
+  _hist.push(_cur);
+  _cur = id;
+  var el = document.getElementById(id);
+  if(!el) { console.error('화면 없음:', id); return; }
+  el.classList.add('active');
+  // setup 화면은 screen01 안에 있음
+  if(id === 's-setup') {
+    // screen01을 그대로 유지하면서 내부에서 setup으로 전환
+    var s01 = document.getElementById('s-start');
+    if(s01 && s01.contentWindow && s01.contentWindow.goToSetup_internal) {
+      s01.classList.add('active');
+      el.classList.remove('active');
+      s01.contentWindow.goToSetup_internal();
+    }
+    return;
+  }
+}
+
+function goBack() {
+  if(_hist.length) gotoScreen(_hist.pop());
+}
+</script>
+</body>
+</html>

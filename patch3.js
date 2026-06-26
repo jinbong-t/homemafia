@@ -1,0 +1,675 @@
+const fs = require('fs');
+
+try {
+    let oldHtml = fs.readFileSync('teacher.html', 'utf-8');
+    
+    // Extract base64 image
+    const srcMatch = oldHtml.match(/src="(data:image\/png;base64,[^"]+)"/);
+    let base64Img = '';
+    if (srcMatch && srcMatch[1]) {
+        base64Img = srcMatch[1];
+    } else {
+        console.log("Warning: Could not find base64 image.");
+    }
+
+    const newHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSA FBI CONTROL ROOM</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; font-weight: 800; }
+        body { background: #050a15; color: #0cf; display: flex; height: 100vh; overflow: hidden; position: relative; }
+        
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(0, 204, 255, 0.05) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 204, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px; pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 204, 255, 0.05) 51%);
+            background-size: 100% 4px; pointer-events: none; z-index: 999;
+        }
+
+        .sidebar { width: 280px; background: rgba(0, 10, 20, 0.9); border-right: 2px solid #0cf; display: flex; flex-direction: column; z-index: 10; box-shadow: 2px 0 20px rgba(0,204,255,0.2); }
+        .sidebar-header { padding: 30px 20px; font-size: 26px; font-weight: 900; border-bottom: 2px solid #0cf; color: #0cf; text-align: center; text-shadow: 0 0 10px #0cf; letter-spacing: 2px; }
+        
+        .nav-btn { padding: 20px; background: none; border: none; color: #08a; text-align: left; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.2s; border-left: 5px solid transparent; letter-spacing: 1px; outline: none; }
+        .nav-btn:hover { background: rgba(0, 204, 255, 0.1); color: #0cf; }
+        .nav-btn.active { background: rgba(0, 204, 255, 0.2); color: #0cf; border-left-color: #0cf; text-shadow: 0 0 8px #0cf; }
+        .nav-btn.admin { margin-top: auto; border-top: 1px solid #800; color: #f44; }
+        .nav-btn.admin:hover { background: rgba(255, 0, 0, 0.1); color: #f44; }
+        .nav-btn.admin.active { background: rgba(255, 0, 0, 0.2); color: #f44; border-left-color: #f44; text-shadow: 0 0 8px #f44; }
+
+        .main-content { flex: 1; padding: 50px; overflow-y: auto; position: relative; z-index: 5; }
+        .panel { display: none; animation: glitch 0.3s linear; }
+        .panel.active { display: block; }
+        
+        @keyframes glitch {
+            0% { opacity: 0; transform: skewX(10deg); }
+            50% { opacity: 0.5; transform: skewX(-10deg); filter: blur(2px); }
+            100% { opacity: 1; transform: skewX(0); filter: blur(0); }
+        }
+
+        .panel-title { font-size: 36px; font-weight: 900; margin-bottom: 40px; border-bottom: 3px solid #0cf; padding-bottom: 15px; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 15px #0cf; }
+        .panel-title.admin { border-bottom-color: #f44; text-shadow: 0 0 15px #f44; color:#f44; }
+        .cursor::after { content: "█"; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* === 탭 1: 스캐너 KIOSK === */
+        .kiosk-setup { display: flex; justify-content: center; gap: 20px; margin-bottom: 40px; }
+        .kiosk-select { padding: 15px; font-size: 22px; border: 2px solid #0cf; background: #000; color: #0cf; outline: none; font-weight: 900; box-shadow: 0 0 15px rgba(0,204,255,0.2); cursor: pointer; }
+        .kiosk-select:focus { box-shadow: 0 0 25px rgba(0,204,255,0.6); }
+
+        .scanner-container { position: relative; display: flex; flex-direction: column; align-items: center; }
+        .scanner-box { position: relative; width: 240px; height: 320px; border: 4px solid #0cf; border-radius: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; background: rgba(0,20,40,0.4); transition: all 0.2s; }
+        .scanner-box:active { transform: scale(0.97); }
+        .scanner-box:hover { box-shadow: 0 0 40px rgba(0,204,255,0.5), inset 0 0 30px rgba(0,204,255,0.5); }
+        
+        .fingerprint-svg { width: 170px; height: 240px; object-fit: contain; filter: brightness(0) saturate(100%) invert(60%) sepia(85%) saturate(3000%) hue-rotate(160deg) brightness(105%) contrast(110%); mix-blend-mode: screen; opacity: 0.9; transition: filter 0.3s; }
+        .scanner-box:hover .fingerprint-svg { filter: brightness(0) saturate(100%) invert(70%) sepia(100%) saturate(4000%) hue-rotate(160deg) brightness(120%) contrast(120%); }
+        
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 8px; background: #0cf; box-shadow: 0 0 25px 10px rgba(0,204,255,0.8); display: none; z-index: 10; }
+        .scanning .scan-line { display: block; animation: scanAnim 1.2s linear infinite; }
+        .scanning .fingerprint-svg { filter: brightness(0) saturate(100%) invert(80%) sepia(100%) saturate(5000%) hue-rotate(160deg) brightness(140%) contrast(130%); }
+
+        @keyframes scanAnim { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+        
+        .corner { position: absolute; width: 25px; height: 25px; border: 4px solid transparent; }
+        .tl { top: -4px; left: -4px; border-top-color: #0cf; border-left-color: #0cf; border-top-left-radius: 30px; }
+        .tr { top: -4px; right: -4px; border-top-color: #0cf; border-right-color: #0cf; border-top-right-radius: 30px; }
+        .bl { bottom: -4px; left: -4px; border-bottom-color: #0cf; border-left-color: #0cf; border-bottom-left-radius: 30px; }
+        .br { bottom: -4px; right: -4px; border-bottom-color: #0cf; border-right-color: #0cf; border-bottom-right-radius: 30px; }
+
+        .result-display { margin-top: 40px; font-size: 42px; font-weight: 900; height: 60px; text-align: center; letter-spacing: 2px; }
+        .result-mafia { color: #f22; text-shadow: 0 0 30px #f22; animation: alertPulse 0.5s infinite; }
+        .result-citizen { color: #0cf; text-shadow: 0 0 25px #0cf; }
+        .result-scanning { color: #ff0; text-shadow: 0 0 20px #ff0; animation: scanningText 1s infinite; }
+        
+        @keyframes alertPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } }
+        @keyframes scanningText { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* === 탭 2 & 3: 대시보드 현황 === */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px; }
+        .card { background: rgba(0, 10, 30, 0.7); border: 2px solid #0cf; padding: 25px; box-shadow: 0 0 20px rgba(0,204,255,0.15); position: relative; backdrop-filter: blur(5px); }
+        .card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: #0cf; box-shadow: 0 0 20px #0cf; }
+        .card-header { font-size: 26px; font-weight: 900; margin-bottom: 25px; color: #0cf; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #0cf; padding-bottom: 15px; }
+        
+        .stage-track { display: flex; align-items: center; gap: 10px; }
+        .stage-step { width: 45px; height: 45px; border: 3px solid #068; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; color: #068; transition: all 0.4s; }
+        .stage-step.active { background: rgba(0,204,255,0.2); color: #0cf; border-color: #0cf; box-shadow: 0 0 20px #0cf, inset 0 0 15px #0cf; text-shadow: 0 0 8px #0cf; }
+        .stage-line { flex: 1; height: 4px; background: #068; }
+        .stage-line.active { background: #0cf; box-shadow: 0 0 15px #0cf; }
+
+        .vote-result { font-size: 22px; color: #0a0; margin-top: 15px; line-height: 1.5; }
+        .vote-success { color: #0ff; text-shadow: 0 0 20px #0ff; font-weight: 900; font-size: 26px; margin-top: 20px; }
+        .vote-fail { color: #f22; text-shadow: 0 0 20px #f22; font-weight: 900; font-size: 26px; margin-top: 20px; }
+
+        /* === 탭 4: ADMIN SETUP === */
+        .admin-login-overlay { display:none; position:fixed; inset:0; background:rgba(20,0,0,0.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center; }
+        .admin-login-box { border: 3px solid #f44; padding: 50px; text-align: center; background: #100; box-shadow: 0 0 40px rgba(255,0,0,0.4); }
+        .admin-input { padding:20px; font-size:28px; background:#000; border:2px solid #f44; color:#f44; text-align:center; margin: 25px 0; outline:none; letter-spacing: 5px; width: 100%; font-weight:900; }
+        .admin-input:focus { box-shadow: 0 0 25px rgba(255,0,0,0.6); }
+        .admin-btn { padding:20px 50px; background:rgba(255,0,0,0.2); border:3px solid #f44; color:#f44; cursor:pointer; font-weight:900; font-size:24px; transition:all 0.2s; }
+        .admin-btn:hover { background:#f44; color:#000; box-shadow: 0 0 30px #f44; }
+
+        .admin-layout { display: flex; gap: 30px; height: 600px; }
+        .admin-sidebar { width: 280px; border: 2px solid #f44; background: rgba(30,0,0,0.6); display: flex; flex-direction: column; }
+        .admin-sidebar-header { padding: 20px; border-bottom: 2px solid #f44; color: #f44; font-weight: 900; text-align: center; font-size: 24px; background: rgba(255,0,0,0.1); }
+        .admin-group-list { flex: 1; overflow-y: auto; }
+        .admin-group-item { padding: 20px; color: #d66; border-bottom: 1px solid #833; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 22px; font-weight: 900; }
+        .admin-group-item:hover { background: rgba(255,0,0,0.15); color: #f44; }
+        .admin-group-item.active { background: rgba(255,0,0,0.3); color: #f44; border-left: 8px solid #f44; text-shadow: 0 0 10px #f44; }
+        .del-btn { background: none; border: none; color: #f44; cursor: pointer; font-size: 24px; font-weight:900; padding: 0 10px; }
+        .del-btn:hover { color: #fff; text-shadow: 0 0 10px #fff; }
+        .add-group-btn { padding: 20px; background: rgba(255,0,0,0.1); border: none; border-top: 2px solid #f44; color: #f44; cursor: pointer; font-weight: 900; font-size: 20px; }
+        .add-group-btn:hover { background: rgba(255,0,0,0.3); }
+
+        .admin-main { flex: 1; border: 2px solid #f44; background: rgba(30,0,0,0.6); padding: 30px; display: flex; flex-direction: column; }
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 15px; margin-top: 20px; flex: 1; align-content: start; }
+        .stu-btn { padding: 20px 0; background: transparent; border: 2px solid #666; color: #ccc; font-size: 24px; font-weight: 900; cursor: pointer; transition: all 0.2s; border-radius: 5px; }
+        .stu-btn:hover { border-color: #fff; color: #fff; transform: scale(1.05); }
+        .stu-btn.assigned { background: rgba(0,204,255,0.2); border-color: #0cf; color: #0cf; }
+        .stu-btn.active-assigned { background: rgba(255,0,0,0.5); border-color: #f44; color: #fff; box-shadow: 0 0 15px #f44; text-shadow: 0 0 5px #fff; }
+
+        .mafia-result-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 22px; }
+        .mafia-result-table th, .mafia-result-table td { border: 2px solid #f44; padding: 15px; text-align: center; color: #f44; font-weight:900; }
+        .mafia-result-table th { background: rgba(255,0,0,0.3); font-size: 24px; }
+        .highlight-mafia { color: #fff; text-shadow: 0 0 15px #f44; font-size: 26px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Admin Login Overlay -->
+    <div id="admin-login-overlay" class="admin-login-overlay">
+        <div class="admin-login-box">
+            <h2 style="color:#f44; margin-bottom:10px; letter-spacing:3px; font-size:36px;">통제 구역 (RESTRICTED AREA)</h2>
+            <p style="color:#f88; margin-bottom:30px; font-size:22px;">관리자 권한이 필요합니다</p>
+            <input type="password" id="admin-pw" class="admin-input" placeholder="비밀번호 입력" onkeypress="if(event.key==='Enter') verifyAdmin()">
+            <button class="admin-btn" onclick="verifyAdmin()">시스템 접속</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-header">WSA 관제탑<br><span style="font-size:16px; opacity:0.8; color:#08a;">VER 3.1.0 ONLINE</span></div>
+        <button class="nav-btn active" onclick="switchTab('tab-roulette')">> 신원 스캔 (스캐너)</button>
+        <button class="nav-btn" onclick="switchTab('tab-progress')">> 스테이지 모니터링</button>
+        <button class="nav-btn" onclick="switchTab('tab-vote')">> 투표 결과 분석</button>
+        <button class="nav-btn admin" onclick="openAdmin()">⚙️ 관리자 설정 (마피아 지정)</button>
+    </div>
+
+    <div class="main-content">
+        <!-- 탭 1: 마피아 뽑기 (KIOSK) -->
+        <div id="tab-roulette" class="panel active">
+            <h2 class="panel-title cursor">신원 스캐너 (IDENTITY SCANNER)</h2>
+            
+            <div class="kiosk-setup">
+                <select class="kiosk-select" id="kiosk-group" onchange="updateKioskStudents()">
+                    <option value="" disabled selected>-- 조 선택 --</option>
+                </select>
+                <select class="kiosk-select" id="kiosk-student" onchange="resetScanUI()">
+                    <option value="" disabled selected>-- 번호 선택 --</option>
+                </select>
+            </div>
+
+            <div class="scanner-container">
+                <div class="scanner-box" id="scanner-box" onclick="scanFingerprint()">
+                    <div class="corner tl"></div><div class="corner tr"></div>
+                    <div class="corner bl"></div><div class="corner br"></div>
+                    <div class="scan-line"></div>
+                    ${base64Img ? '<img class="fingerprint-svg" src="' + base64Img + '" />' : '<div style="color:#0cf; font-size:60px;">👆</div>'}
+                </div>
+            </div>
+
+            <div class="result-display" id="roulette-result">대기 중... 조와 번호를 선택하세요.</div>
+        </div>
+
+        <!-- 탭 2: 스테이지 현황 -->
+        <div id="tab-progress" class="panel">
+            <h2 class="panel-title cursor">실시간 스테이지 현황</h2>
+            <div class="dashboard-grid" id="progress-grid">
+                <div style="color:#068; font-size: 22px;">연결된 학생 기기가 없습니다.</div>
+            </div>
+        </div>
+
+        <!-- 탭 3: 투표 결과 -->
+        <div id="tab-vote" class="panel">
+            <h2 class="panel-title cursor">최종 마피아 투표 결과</h2>
+            <div class="dashboard-grid" id="vote-grid">
+                <div style="color:#068; font-size: 22px;">투표 데이터가 없습니다.</div>
+            </div>
+        </div>
+
+        <!-- 탭 4: 관리자 설정 (비밀번호 통과 후) -->
+        <div id="tab-admin" class="panel">
+            <h2 class="panel-title admin cursor">학생 배정 및 마피아 관리 (ADMIN SETUP)</h2>
+            
+            <div style="margin-bottom: 30px; display:flex; gap:20px; align-items:center; background: rgba(255,0,0,0.1); padding: 20px; border: 2px solid #f44;">
+                <label style="color:#f44; font-weight:900; font-size:24px;">총 학생 수: </label>
+                <input type="number" id="admin-total-stu" value="30" style="padding:15px; font-size:24px; background:#000; border:2px solid #f44; color:#f44; outline:none; width:100px; font-weight:900;">
+                <button onclick="generateStudentGrid()" style="padding:15px 30px; background:rgba(255,0,0,0.3); border:2px solid #f44; color:#f44; cursor:pointer; font-weight:900; font-size:20px;">적용하기</button>
+                <span style="color:#f88; font-size:18px; margin-left: 20px;">(조를 먼저 클릭하고, 아래 번호를 눌러 배정하세요)</span>
+            </div>
+
+            <div class="admin-layout">
+                <div class="admin-sidebar">
+                    <div class="admin-sidebar-header">조 목록 (GROUPS)</div>
+                    <div class="admin-group-list" id="admin-group-list">
+                        <!-- 동적 생성 -->
+                    </div>
+                    <button class="add-group-btn" onclick="addAdminGroup()">+ 새 조 추가</button>
+                </div>
+                
+                <div class="admin-main">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #f44; padding-bottom:15px;">
+                        <h3 style="color:#fff; font-size: 26px; text-shadow: 0 0 10px #f44;" id="admin-selected-group-title">왼쪽에서 조를 먼저 선택하세요.</h3>
+                    </div>
+                    <div class="student-grid" id="admin-student-grid">
+                        <!-- 번호 버튼들 -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:40px; text-align:center; display: flex; justify-content: center; gap: 20px;">
+                <button class="admin-btn" style="background: rgba(255, 50, 50, 0.2);" onclick="resetAdminSetup()">전체 초기화 (새로운 반 시작)</button>
+                <button class="admin-btn" onclick="saveAndAssignMafia()">저장 및 마피아 자동 배정</button>
+            </div>
+
+            <div id="admin-result-area" style="display:none; margin-top:50px;">
+                <h3 style="color:#f44; margin-bottom:20px; border-bottom:3px solid #f44; padding-bottom:10px; font-size:30px;">이번 판 정답표 (일급 기밀)</h3>
+                <table class="mafia-result-table" id="mafia-table">
+                    <thead><tr><th>조 이름</th><th>소속 학생 번호</th><th>마피아 당첨자</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스캐닝 효과음용 -->
+    <audio id="snd-scan" src="data:audio/mp3;base64,//OExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" preload="auto"></audio>
+
+    <script>
+        // 소켓 초기화 (서버 없이도 관리자 기능 동작하도록 방어)
+        let socket;
+        try {
+            socket = io();
+        } catch(e) {
+            console.warn('Socket.io 연결 불가 - 오프라인 모드로 전환:', e);
+            socket = { on: function(){}, emit: function(){} };
+        }
+        let gameState = {};
+        let classSetup = null;
+
+        // 소켓 이벤트
+        socket.on('connect', () => { 
+            socket.emit('teacher_join'); 
+            socket.emit('request_class_setup');
+        });
+        socket.on('init_state', (state) => { gameState = state; renderDashboard(); });
+        socket.on('update_state', (state) => { gameState = state; renderDashboard(); });
+        socket.on('update_class_setup', (setup) => { 
+            classSetup = setup; 
+            updateKioskDropdowns();
+            renderAdminResultTable();
+        });
+
+        // 탭 전환
+        function switchTab(tabId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId)) {
+                    b.classList.add('active');
+                }
+            });
+        }
+
+        // ==========================================
+        // 1. KIOSK (스캐너) 로직
+        // ==========================================
+        let isScanning = false;
+
+        function updateKioskDropdowns() {
+            const groupSelect = document.getElementById('kiosk-group');
+            const currentVal = groupSelect.value;
+            groupSelect.innerHTML = '<option value="" disabled selected>-- 조 선택 --</option>';
+            
+            if (classSetup && classSetup.groups) {
+                Object.keys(classSetup.groups).forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g; opt.textContent = g;
+                    groupSelect.appendChild(opt);
+                });
+            }
+            if (currentVal && classSetup.groups[currentVal]) groupSelect.value = currentVal;
+            updateKioskStudents();
+        }
+
+        function updateKioskStudents() {
+            const groupName = document.getElementById('kiosk-group').value;
+            const stuSelect = document.getElementById('kiosk-student');
+            const currentStu = stuSelect.value;
+            
+            stuSelect.innerHTML = '<option value="" disabled selected>-- 번호 선택 --</option>';
+
+            if (!groupName || !classSetup || !classSetup.groups[groupName]) {
+                resetScanUI(); 
+                return;
+            }
+            
+            const groupData = classSetup.groups[groupName];
+            let isCurrentStuInGroup = false;
+
+            groupData.students.forEach(num => {
+                const opt = document.createElement('option');
+                opt.value = num; 
+                if (groupData.scanned.includes(num)) {
+                    opt.textContent = \`[\${num}번] - 이미 스캔됨\`;
+                    opt.disabled = true;
+                } else {
+                    opt.textContent = \`\${num}번\`;
+                }
+                stuSelect.appendChild(opt);
+            });
+        }
+
+        function resetScanUI() {
+            document.getElementById('roulette-result').innerHTML = '대기 중... 조와 번호를 선택하세요.';
+        }
+
+        let resetDropdownTimeout = null;
+
+        function scanFingerprint() {
+            if (isScanning) return;
+            
+            const groupName = document.getElementById('kiosk-group').value;
+            const studentNumStr = document.getElementById('kiosk-student').value;
+            
+            if (!groupName || !studentNumStr) {
+                alert('스캔하기 전에 조와 번호를 정확히 선택해주세요!');
+                return;
+            }
+            
+            const studentNum = parseInt(studentNumStr);
+            const groupData = classSetup.groups[groupName];
+
+            isScanning = true;
+            const resDisplay = document.getElementById('roulette-result');
+            const scannerBox = document.getElementById('scanner-box');
+            
+            scannerBox.classList.add('scanning');
+            resDisplay.innerHTML = '<span class="result-scanning">신원 확인 중...</span>';
+            // playScanSound(); // 소리 제거
+
+            // 이전 타임아웃이 있다면 취소 (빠르게 연속 스캔할 때 충돌 방지)
+            if (resetDropdownTimeout) clearTimeout(resetDropdownTimeout);
+
+            setTimeout(() => {
+                try {
+                    scannerBox.classList.remove('scanning');
+                    isScanning = false;
+
+                    if (groupData.mafia === studentNum) {
+                        resDisplay.innerHTML = '🚨 <span class="result-mafia">경고: 마피아로 판명되었습니다!</span> 🚨';
+                    } else {
+                        resDisplay.innerHTML = '<span class="result-citizen">통과: 선량한 시민입니다.</span>';
+                    }
+
+                    // 서버에 스캔 기록 전송
+                    socket.emit('mark_scanned', { groupName, studentNum });
+                    
+                    // 3초 후 번호 선택만 초기화 (학생이 다른 번호를 선택하지 않았을 때만)
+                    resetDropdownTimeout = setTimeout(() => {
+                        const stuSelect = document.getElementById('kiosk-student');
+                        if (stuSelect && parseInt(stuSelect.value) === studentNum) {
+                            stuSelect.value = ""; 
+                        }
+                    }, 3000);
+                } catch(err) {
+                    alert('에러 발생: ' + err.message);
+                    isScanning = false;
+                    resDisplay.innerHTML = '에러 발생!';
+                }
+            }, 1500);
+        }
+
+        // ==========================================
+        // 2. 관리자 모드 로직 (ADMIN SETUP)
+        // ==========================================
+        let adminGroups = {}; 
+        let currentAdminGroup = null;
+
+        function openAdmin() {
+            document.getElementById('admin-login-overlay').style.display = 'flex';
+            document.getElementById('admin-pw').value = '';
+            document.getElementById('admin-pw').focus();
+        }
+
+        function verifyAdmin() {
+            const pw = document.getElementById('admin-pw').value;
+            if (pw === '1234') { 
+                document.getElementById('admin-login-overlay').style.display = 'none';
+                switchTab('tab-admin');
+                initAdminUI();
+            } else {
+                alert('접근 거부: 비밀번호가 틀렸습니다.');
+            }
+        }
+
+        function initAdminUI() {
+            if (Object.keys(adminGroups).length === 0) {
+                // 초기 기본 10개 조 자동 세팅
+                for(let i=1; i<=10; i++){
+                    adminGroups[i+'조'] = [];
+                }
+            }
+            generateStudentGrid();
+            renderAdminGroups();
+        }
+
+        function generateStudentGrid() {
+            const total = parseInt(document.getElementById('admin-total-stu').value) || 30;
+            const grid = document.getElementById('admin-student-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= total; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'stu-btn';
+                btn.id = 'stu-btn-' + i;
+                btn.textContent = i;
+                btn.onclick = () => toggleStudentAssign(i);
+                grid.appendChild(btn);
+            }
+            refreshStudentGridColors();
+        }
+
+        function renderAdminGroups() {
+            const list = document.getElementById('admin-group-list');
+            list.innerHTML = '';
+            Object.keys(adminGroups).forEach(g => {
+                const item = document.createElement('div');
+                item.className = 'admin-group-item' + (currentAdminGroup === g ? ' active' : '');
+                item.innerHTML = \`<span>\${g} <small>(\${adminGroups[g].length}명)</small></span> <button class="del-btn" onclick="event.stopPropagation(); deleteAdminGroup('\${g}')">X</button>\`;
+                item.onclick = () => {
+                    currentAdminGroup = g;
+                    document.getElementById('admin-selected-group-title').textContent = \`[\${g}] 에 배정할 학생 번호를 클릭하세요.\`;
+                    renderAdminGroups();
+                    refreshStudentGridColors();
+                };
+                list.appendChild(item);
+            });
+            if (!currentAdminGroup && Object.keys(adminGroups).length > 0) {
+                list.firstChild.click();
+            }
+        }
+
+        function addAdminGroup() {
+            let num = Object.keys(adminGroups).length + 1;
+            let name = num + '조';
+            while (adminGroups[name]) {
+                num++;
+                name = num + '조';
+            }
+            adminGroups[name] = [];
+            renderAdminGroups();
+        }
+
+        function deleteAdminGroup(g) {
+            delete adminGroups[g];
+            if (currentAdminGroup === g) currentAdminGroup = null;
+            renderAdminGroups();
+            refreshStudentGridColors();
+        }
+
+        function toggleStudentAssign(num) {
+            if (!currentAdminGroup) {
+                return;
+            }
+            
+            // 현재 조에 이미 배정된 상태인지 먼저 확인
+            const alreadyInCurrent = adminGroups[currentAdminGroup].includes(num);
+            
+            // 다른 모든 조에서 해당 번호 제거
+            Object.keys(adminGroups).forEach(g => {
+                const idx = adminGroups[g].indexOf(num);
+                if (idx > -1) adminGroups[g].splice(idx, 1);
+            });
+
+            // 현재 조에 없었으면 추가, 있었으면 해제(토글)
+            if (!alreadyInCurrent) {
+                adminGroups[currentAdminGroup].push(num);
+            }
+            
+            adminGroups[currentAdminGroup].sort((a,b)=>a-b);
+            renderAdminGroups();
+            refreshStudentGridColors();
+        }
+
+        function refreshStudentGridColors() {
+            document.querySelectorAll('.stu-btn').forEach(btn => {
+                btn.className = 'stu-btn';
+                const num = parseInt(btn.textContent);
+                
+                let assignedGroup = null;
+                Object.keys(adminGroups).forEach(g => {
+                    if (adminGroups[g].includes(num)) assignedGroup = g;
+                });
+
+                if (assignedGroup) {
+                    if (assignedGroup === currentAdminGroup) {
+                        btn.classList.add('active-assigned');
+                    } else {
+                        btn.classList.add('assigned');
+                    }
+                }
+            });
+        }
+
+        function resetAdminSetup() {
+            if(confirm("정말 모든 배정 데이터를 초기화하고 새로운 반을 시작하시겠습니까?")) {
+                adminGroups = {};
+                for(let i=1; i<=10; i++){
+                    adminGroups[i+'조'] = [];
+                }
+                currentAdminGroup = null;
+                document.getElementById('admin-selected-group-title').textContent = '왼쪽에서 조를 먼저 선택하세요.';
+                renderAdminGroups();
+                refreshStudentGridColors();
+                
+                // 서버 데이터 비우기
+                socket.emit('save_class_setup', { className: 'WSA HOMEBASE', groups: {} });
+            }
+        }
+
+        function saveAndAssignMafia() {
+            const data = {
+                className: "WSA HOMEBASE",
+                groups: adminGroups
+            };
+            socket.emit('save_class_setup', data);
+            
+            // 저장 후 자동으로 신원 스캔 탭으로 이동
+            switchTab('tab-roulette');
+        }
+
+        function renderAdminResultTable() {
+            if (!classSetup || !classSetup.groups) return;
+            document.getElementById('admin-result-area').style.display = 'block';
+            const tbody = document.querySelector('#mafia-table tbody');
+            tbody.innerHTML = '';
+
+            Object.keys(classSetup.groups).forEach(g => {
+                const tr = document.createElement('tr');
+                const data = classSetup.groups[g];
+                
+                const stuStr = data.students.map(n => n === data.mafia ? \`<span class="highlight-mafia">\${n}</span>\` : n).join(', ');
+                
+                tr.innerHTML = \`
+                    <td>\${g}</td>
+                    <td style="font-size:20px;">\${stuStr}</td>
+                    <td class="highlight-mafia">\${data.mafia}번</td>
+                \`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 3. 기존 현황판 렌더링 로직
+        // ==========================================
+        function renderDashboard() {
+            const progressGrid = document.getElementById('progress-grid');
+            const voteGrid = document.getElementById('vote-grid');
+            let progressHtml = '';
+            let voteHtml = '';
+            const groups = Object.keys(gameState).sort((a,b) => parseInt(a) - parseInt(b));
+            
+            if (groups.length === 0) {
+                progressGrid.innerHTML = '<div style="color:#068; font-size: 22px;">연결된 학생 기기가 없습니다.</div>';
+                voteGrid.innerHTML = '<div style="color:#068; font-size: 22px;">투표 데이터가 없습니다.</div>';
+                return;
+            }
+
+            groups.forEach(group => {
+                const data = gameState[group];
+                let stagesHtml = '';
+                for(let i=1; i<=5; i++) {
+                    const activeClass = data.stage >= i ? 'active' : '';
+                    stagesHtml += \`<div class="stage-step \${activeClass}">\${i}</div>\`;
+                    if(i < 5) stagesHtml += \`<div class="stage-line \${activeClass}"></div>\`;
+                }
+                progressHtml += \`<div class="card"><div class="card-header">\${group}</div><div class="stage-track">\${stagesHtml}</div></div>\`;
+
+                if (data.vote) {
+                    const voteClass = data.vote.success ? 'vote-success' : 'vote-fail';
+                    const voteText = data.vote.success ? '마피아 검거 성공!' : '시민을 지목하여 실패!';
+                    voteHtml += \`<div class="card"><div class="card-header">\${group}</div><div class="vote-result">> \${data.vote.votedFor}번 지목</div><div class="vote-result \${voteClass}">\${voteText}</div></div>\`;
+                }
+            });
+
+            progressGrid.innerHTML = progressHtml;
+            voteGrid.innerHTML = voteHtml ? voteHtml : '<div style="color:#068; font-size: 22px;">투표 데이터가 없습니다.</div>';
+        }
+
+        // === 사운드 유틸 ===
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playScanSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 1.5);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 1.5);
+        }
+
+        function playAlertSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            for(let i=0; i<3; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                }, i * 300);
+            }
+        }
+
+        function playClearSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        }
+    </script>
+</body>
+</html>`;
+
+    // Fix template literal backticks before saving
+    const finalHtml = newHtml.replace(/\\\${base64Img}/g, '${base64Img}');
+    
+    fs.writeFileSync('teacher.html', newHtml.replace(/\\\$/g, '$').replace(/\\\`/g, '`'), 'utf-8');
+    console.log('Successfully generated patch3.js changes');
+} catch(e) {
+    console.error(e);
+}
