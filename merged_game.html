@@ -3494,8 +3494,8 @@ undefined
 var ANSWERS = {b1:'2', b2:'2', b3:'2'};
 var CORRECT = {
   b1:'✅ 정답! 방 B. 월세 28만원으로 가장 저렴했지만 북향·지하·창문 없음·습도 82%로 3년 연속 곰팡이가 발생했다. 이사 비용이 6개월치 월세(168만원)를 초과했다. → 코드 첫째: 2',
-  b2:'✅ 정답! 항목 3. 항목 1·2·4·5는 교과서의 주거 기능에 해당한다. 항목 3은 주거의 기능이 아닌 사회적 의미(과시·경쟁)다. → 코드 둘째: 3',
-  b3:'✅ 정답! 방안 3. 암막 커튼은 채광을 차단해 낮에도 조명이 필요하게 만든다. 시각적으로도 좁아 보이게 해 공간 활용 목적에 어긋난다. → 코드 셋째: 3'
+  b2:'✅ 정답! 항목 3. 항목 1·2·4·5는 교과서의 주거 기능에 해당한다. 항목 3은 주거의 기능이 아닌 사회적 의미(과시·경쟁)다. → 코드 둘째: 2',
+  b3:'✅ 정답! 방안 3. 암막 커튼은 채광을 차단해 낮에도 조명이 필요하게 만든다. 시각적으로도 좁아 보이게 해 공간 활용 목적에 어긋난다. → 코드 셋째: 2'
 };
 var WRONG = {
   b1:'❌ 조건을 다시 읽어봐라. 월세가 저렴하고 이사 비용이 6개월치 이상 든 방은?',
@@ -3535,8 +3535,8 @@ function pickOpt(qid, val, el) {
 function updateCode() {
   var codes = {
     b1: selected['b1']==='__correct__' ? '2' : '—',
-    b2: selected['b2']==='__correct__' ? '3' : '—',
-    b3: selected['b3']==='__correct__' ? '3' : '—'
+    b2: selected['b2']==='__correct__' ? '2' : '—',
+    b3: selected['b3']==='__correct__' ? '2' : '—'
   };
   var b1=document.querySelector('#sec-screen03 #' + ('cb1')), b2=document.querySelector('#sec-screen03 #' + ('cb2')), b3=document.querySelector('#sec-screen03 #' + ('cb3'));
   b1.textContent=codes.b1; b1.className='code-box'+(codes.b1!=='—'?' filled':'');
