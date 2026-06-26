@@ -105,7 +105,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`=========================================`);
     console.log(`🚀 WSA 방탈출 게임 서버가 시작되었습니다!`);
