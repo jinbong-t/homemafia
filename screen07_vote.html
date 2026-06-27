@@ -185,6 +185,13 @@ body{min-height:100vh;font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sa
     <div class="ending-icon">🎓</div>
     <div class="ending-title">오늘 임무 완료!</div>
     <div class="ending-quote">"오늘 잡은 마피아는 친구가 아니에요.<br>여러분 미래를 망치는 선택이었어요.<br>건강 무관심, 충동 소비, 소통 부족, 무계획, 책임 회피.<br><br>지금이 딱 시작할 때야 — 이 말, 진심으로 응원해요."</div>
+    
+    <div class="reflection-section" style="margin-top: 20px;">
+      <div style="font-size: 14px; color: #e2e8f0; margin-bottom: 8px; font-weight: 700;">📝 오늘의 활동 소감을 남겨주세요</div>
+      <textarea id="reflection-text" placeholder="방탈출을 마치며 느낀 점을 자유롭게 적어주세요..." style="width: 100%; height: 80px; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-family: inherit; font-size: 13px; resize: none; outline: none; margin-bottom: 10px;"></textarea>
+      <button id="btn-reflection" onclick="submitReflection()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: opacity 0.2s;">소감 전송하기</button>
+      <div id="reflection-done" style="display: none; color: #60a5fa; font-size: 13px; font-weight: 700; margin-top: 10px;">전송이 완료되었습니다! 수고하셨습니다. 🎉</div>
+    </div>
   </div>
 
 </div>
@@ -258,6 +265,22 @@ function finishLife(){
   setTimeout(function(){
     document.getElementById('ending').scrollIntoView({behavior:'smooth',block:'center'});
   },300);
+}
+function submitReflection() {
+  var text = document.getElementById('reflection-text').value.trim();
+  if(!text) return;
+  
+  if(window.socket && window.WSA_GROUP) {
+    window.socket.emit('submit_reflection', {
+      groupName: window.WSA_GROUP,
+      reflection: text
+    });
+  }
+  
+  document.getElementById('btn-reflection').style.display = 'none';
+  document.getElementById('reflection-text').readOnly = true;
+  document.getElementById('reflection-text').style.opacity = '0.7';
+  document.getElementById('reflection-done').style.display = 'block';
 }
 </script>
 </body>

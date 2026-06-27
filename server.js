@@ -64,6 +64,17 @@ io.on('connection', (socket) => {
         io.emit('update_state', gameState);
     });
 
+    // 활동 소감 제출
+    socket.on('submit_reflection', (data) => {
+        const { groupName, reflection } = data;
+        if (!gameState[groupName]) {
+            gameState[groupName] = { stage: 5, vote: null };
+        }
+        gameState[groupName].reflection = reflection;
+        console.log(`${groupName} 활동 소감 제출됨`);
+        io.emit('update_state', gameState);
+    });
+
     // === 지정 마피아 관리자 기능 ===
     socket.on('save_class_setup', (data) => {
         const setup = {
