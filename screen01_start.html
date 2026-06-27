@@ -636,6 +636,10 @@ function goBack(){
 /* ── SCREEN 2 → 3 ── */
 function goToSetup(){
   scr2.classList.remove('active');
+  if (window.WSA_GROUP) {
+    if(window.parent&&window.parent.gotoScreen){window.parent.gotoScreen('s-stage1');}else{document.getElementById('scr-setup').classList.add('active');}
+    return;
+  }
   if(window.parent&&window.parent.gotoScreen){window.parent.gotoScreen('s-setup');}else{document.getElementById('scr-setup').classList.add('active');}
   setTimeout(function(){ document.getElementById('group-input').focus(); },400);
 }

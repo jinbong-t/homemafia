@@ -3329,6 +3329,10 @@ function goBack(){
 /* ── SCREEN 2 → 3 ── */
 function goToSetup(){
   scr2.classList.remove('active');
+  if (window.WSA_GROUP) {
+    {gotoScreen('s-stage1');}
+    return;
+  }
   {gotoScreen('s-setup');}
   setTimeout(function(){ document.querySelector('#sec-screen01 #' + ('group-input')).focus(); },400);
 }
