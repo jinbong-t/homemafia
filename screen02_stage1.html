@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>STAGE 1 — 식생활 | WSA HOME BASE</title>
 <style>
+/* ── 홀로그램 통신 오버레이 ── */
+#hologram-overlay {
+  position: fixed; inset: 0; background: rgba(15,25,35,0.98);
+  z-index: 9999; display: flex; flex-direction: column;
+  justify-content: center; padding: 30px;
+  transition: opacity 0.8s ease;
+}
+#hologram-overlay.hide { opacity: 0; pointer-events: none; }
+.holo-text {
+  color: #4ade80; font-family: monospace; font-size: clamp(15px, 4vw, 18px);
+  line-height: 1.6; text-shadow: 0 0 8px rgba(74,222,128,0.5);
+  white-space: pre-wrap; word-break: keep-all;
+}
+.holo-cursor {
+  display: inline-block; width: 8px; height: 18px; background: #4ade80;
+  vertical-align: middle; margin-left: 4px; animation: blink 1s infinite;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; }
 body {
@@ -240,6 +258,11 @@ body {
 </style>
 </head>
 <body>
+
+<!-- 홀로그램 통신 오버레이 -->
+<div id="hologram-overlay">
+  <div><span class="holo-text" id="holo-text"></span><span class="holo-cursor"></span></div>
+</div>
 
 <!-- 히어로 -->
 <div class="hero">
@@ -494,6 +517,37 @@ function updateCode() {
 function submitStage() {
   if(window.parent&&window.parent.gotoScreen)window.parent.gotoScreen('s-paper1');
 }
+
+var holoMsg = "데이터 접속 완료...\nSTAGE 1 식생활 파일의 암호를 해제합니다.\n\n\"식생활 파트는 내가 자취하면서 제일 먼저 망가졌던 부분이야... 조심해!\"\n\n행운을 빌어!";
+var holoIdx = 0;
+var holoTimer = null;
+var isHoloPlaying = false;
+
+function playHologramIntro() {
+  var overlay = document.getElementById('hologram-overlay');
+  var textEl = document.getElementById('holo-text');
+  if(!overlay || !textEl || isHoloPlaying) return;
+  
+  isHoloPlaying = true;
+  overlay.classList.remove('hide');
+  textEl.textContent = "";
+  holoIdx = 0;
+
+  function typeChar() {
+    if(holoIdx < holoMsg.length) {
+      textEl.textContent += holoMsg[holoIdx];
+      holoIdx++;
+      holoTimer = setTimeout(typeChar, 30 + Math.random() * 40);
+    } else {
+      setTimeout(function(){
+        overlay.classList.add('hide');
+      }, 1500);
+    }
+  }
+  setTimeout(typeChar, 400);
+}
+playHologramIntro();
+
 </script>
 </body>
 </html>
