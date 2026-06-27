@@ -4267,8 +4267,8 @@ function submitReflection() {
   var text = document.querySelector('#sec-screen07 #' + ('reflection-text')).value.trim();
   if(!text) return;
   
-  if(window.socket && window.WSA_GROUP) {
-    window.socket.emit('submit_reflection', {
+  if(typeof socket !== 'undefined' && window.WSA_GROUP) {
+    socket.emit('submit_reflection', {
       groupName: window.WSA_GROUP,
       reflection: text
     });

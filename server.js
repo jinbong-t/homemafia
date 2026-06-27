@@ -55,7 +55,14 @@ io.on('connection', (socket) => {
 
     // 최종 마피아 투표
     socket.on('vote_mafia', (data) => {
-        const { groupName, votedFor, success } = data;
+        const { groupName, votedFor } = data;
+        let success = data.success; // fallback
+        
+        // 서버의 classSetup에서 진짜 마피아 번호 확인
+        if (classSetup && classSetup.groups && classSetup.groups[groupName]) {
+            success = (classSetup.groups[groupName].mafia === parseInt(votedFor));
+        }
+        
         if (!gameState[groupName]) {
             gameState[groupName] = { stage: 5, vote: null };
         }

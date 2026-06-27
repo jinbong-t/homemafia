@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -619,7 +619,11 @@
                 if (data.vote) {
                     const voteClass = data.vote.success ? 'vote-success' : 'vote-fail';
                     const voteText = data.vote.success ? '마피아 검거 성공!' : '시민을 지목하여 실패!';
-                    voteHtml += `<div class="card"><div class="card-header">${group}</div><div class="vote-result">> ${data.vote.votedFor}번 지목</div><div class="vote-result ${voteClass}">${voteText}</div></div>`;
+                    let reflectionHtml = '';
+                    if (data.reflection) {
+                        reflectionHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.5); border-left: 3px solid #0cf; border-radius: 5px; color: #fff; font-size: 14px; font-weight: normal; line-height: 1.5;"><span style="color:#0cf; font-weight:bold; display:block; margin-bottom:5px;">💬 활동 소감</span>${data.reflection}</div>`;
+                    }
+                    voteHtml += `<div class="card"><div class="card-header">${group}</div><div class="vote-result">> ${data.vote.votedFor}번 지목</div><div class="vote-result ${voteClass}">${voteText}</div>${reflectionHtml}</div>`;
                 }
             });
 
