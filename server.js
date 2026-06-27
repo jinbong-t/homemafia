@@ -59,8 +59,8 @@ io.on('connection', (socket) => {
         let success = data.success; // fallback
         
         // 서버의 classSetup에서 진짜 마피아 번호 확인
-        if (classSetup && classSetup.groups && classSetup.groups[groupName]) {
-            success = (classSetup.groups[groupName].mafia === parseInt(votedFor));
+        if (globalClassSetup && globalClassSetup.groups && globalClassSetup.groups[groupName]) {
+            success = (globalClassSetup.groups[groupName].mafia === parseInt(votedFor));
         }
         
         if (!gameState[groupName]) {
