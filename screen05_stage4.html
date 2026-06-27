@@ -155,47 +155,9 @@ body{min-height:100vh;font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sa
 @keyframes eleOpenLeft{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 @keyframes eleOpenRight{0%{transform:translateX(0)}100%{transform:translateX(100%)}}
 @keyframes eleOverlayHide{0%,99%{visibility:visible;opacity:1}100%{visibility:hidden;opacity:0}}
-
-/* ── 우주 블랙홀 오버레이 ── */
-#hologram-overlay {
-  position: fixed; inset: 0; background: #000;
-  z-index: 9999; display: flex; flex-direction: column;
-  justify-content: center; align-items: center; padding: 30px;
-  transition: opacity 1.5s ease; overflow: hidden;
-}
-#hologram-overlay.hide { opacity: 0; pointer-events: none; }
-#warp-canvas {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
-}
-.holo-content {
-  position: relative; z-index: 2; text-align: center;
-  background: rgba(0, 0, 0, 0.4); padding: 30px; border-radius: 20px;
-  box-shadow: 0 0 30px rgba(138, 43, 226, 0.4);
-  backdrop-filter: blur(5px); border: 1px solid rgba(138, 43, 226, 0.2);
-}
-.holo-text {
-  color: #e0b0ff; font-family: 'Apple SD Gothic Neo', sans-serif; font-size: clamp(16px, 5vw, 22px);
-  font-weight: 700; line-height: 1.8; text-shadow: 0 0 15px rgba(224, 176, 255, 0.8);
-  white-space: pre-wrap; word-break: keep-all;
-}
-.holo-cursor {
-  display: inline-block; width: 10px; height: 22px; background: #e0b0ff;
-  vertical-align: middle; margin-left: 6px; animation: blink 1s infinite;
-  box-shadow: 0 0 10px #e0b0ff;
-}
-
 </style>
 </head>
 <body>
-
-<!-- 우주 블랙홀 오버레이 -->
-<div id="hologram-overlay">
-  <canvas id="warp-canvas"></canvas>
-  <div class="holo-content">
-    <span class="holo-text" id="holo-text"></span><span class="holo-cursor"></span>
-  </div>
-</div>
-
 
 <div class="elevator-overlay">
   <div class="ele-door left"></div>
