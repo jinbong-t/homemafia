@@ -5,22 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>STAGE 1 — 식생활 | WSA HOME BASE</title>
 <style>
-/* ── 홀로그램 통신 오버레이 ── */
+/* ── 우주 블랙홀 오버레이 ── */
 #hologram-overlay {
-  position: fixed; inset: 0; background: rgba(15,25,35,0.98);
+  position: fixed; inset: 0; background: #000;
   z-index: 9999; display: flex; flex-direction: column;
-  justify-content: center; padding: 30px;
-  transition: opacity 0.8s ease;
+  justify-content: center; align-items: center; padding: 30px;
+  transition: opacity 1.5s ease; overflow: hidden;
 }
 #hologram-overlay.hide { opacity: 0; pointer-events: none; }
+#warp-canvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+}
+.holo-content {
+  position: relative; z-index: 2; text-align: center;
+  background: rgba(0, 0, 0, 0.4); padding: 30px; border-radius: 20px;
+  box-shadow: 0 0 30px rgba(138, 43, 226, 0.4);
+  backdrop-filter: blur(5px); border: 1px solid rgba(138, 43, 226, 0.2);
+}
 .holo-text {
-  color: #4ade80; font-family: monospace; font-size: clamp(15px, 4vw, 18px);
-  line-height: 1.6; text-shadow: 0 0 8px rgba(74,222,128,0.5);
+  color: #e0b0ff; font-family: 'Apple SD Gothic Neo', sans-serif; font-size: clamp(16px, 5vw, 22px);
+  font-weight: 700; line-height: 1.8; text-shadow: 0 0 15px rgba(224, 176, 255, 0.8);
   white-space: pre-wrap; word-break: keep-all;
 }
 .holo-cursor {
-  display: inline-block; width: 8px; height: 18px; background: #4ade80;
-  vertical-align: middle; margin-left: 4px; animation: blink 1s infinite;
+  display: inline-block; width: 10px; height: 22px; background: #e0b0ff;
+  vertical-align: middle; margin-left: 6px; animation: blink 1s infinite;
+  box-shadow: 0 0 10px #e0b0ff;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -259,9 +269,12 @@ body {
 </head>
 <body>
 
-<!-- 홀로그램 통신 오버레이 -->
+<!-- 우주 블랙홀 오버레이 -->
 <div id="hologram-overlay">
-  <div><span class="holo-text" id="holo-text"></span><span class="holo-cursor"></span></div>
+  <canvas id="warp-canvas"></canvas>
+  <div class="holo-content">
+    <span class="holo-text" id="holo-text"></span><span class="holo-cursor"></span>
+  </div>
 </div>
 
 <!-- 히어로 -->
@@ -518,7 +531,7 @@ function submitStage() {
   if(window.parent&&window.parent.gotoScreen)window.parent.gotoScreen('s-paper1');
 }
 
-var holoMsg = "데이터 접속 완료...\nSTAGE 1 식생활 파일의 암호를 해제합니다.\n\n\"식생활 파트는 내가 자취하면서 제일 먼저 망가졌던 부분이야... 조심해!\"\n\n행운을 빌어!";
+var holoMsg = "과거의 시간선으로 진입합니다...\n\n시공간 좌표 : 10년 전 자취방\n경고: 블랙홀 중력장 접근 중\n\n\"식생활 파트는 내가 자취하면서 제일 먼저 망가졌던 부분이야... 조심해!\"\n\n행운을 빌어!";
 var holoIdx = 0;
 var holoTimer = null;
 var isHoloPlaying = false;
@@ -532,19 +545,70 @@ function playHologramIntro() {
   overlay.classList.remove('hide');
   textEl.textContent = "";
   holoIdx = 0;
+  
+  // Canvas Animation
+  const canvas = document.getElementById('warp-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w = canvas.width = window.innerWidth;
+  let h = canvas.height = window.innerHeight;
+  let stars = [];
+  const numStars = 600;
+  let speed = 0.2; 
+  
+  for(let i=0; i<numStars; i++) {
+    stars.push({ x: Math.random()*w - w/2, y: Math.random()*h - h/2, z: Math.random()*w });
+  }
+  
+  let animationFrame;
+  function draw() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // deep space
+    ctx.fillRect(0, 0, w, h);
+    
+    if (speed < 25) speed += 0.08; 
+
+    let cx = w/2; let cy = h/2;
+    for(let i=0; i<numStars; i++) {
+      let star = stars[i];
+      star.z -= speed;
+      if(star.z <= 0) {
+        star.z = w;
+        star.x = Math.random()*w - cx;
+        star.y = Math.random()*h - cy;
+      }
+      let px = cx + (star.x / star.z) * w;
+      let py = cy + (star.y / star.z) * w;
+      let size = (1 - star.z / w) * 4;
+      if(size < 0) size = 0;
+      
+      let r = 200 + Math.random()*55;
+      let g = 200 + Math.random()*55;
+      let b = 255;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.beginPath();
+      ctx.arc(px, py, size, 0, Math.PI*2);
+      ctx.fill();
+    }
+    animationFrame = requestAnimationFrame(draw);
+  }
+  draw();
 
   function typeChar() {
     if(holoIdx < holoMsg.length) {
       textEl.textContent += holoMsg[holoIdx];
       holoIdx++;
-      holoTimer = setTimeout(typeChar, 30 + Math.random() * 40);
+      holoTimer = setTimeout(typeChar, 35 + Math.random() * 35);
     } else {
       setTimeout(function(){
-        overlay.classList.add('hide');
-      }, 1500);
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          cancelAnimationFrame(animationFrame);
+        }, 1500);
+      }, 2000);
     }
   }
-  setTimeout(typeChar, 400);
+  setTimeout(typeChar, 500);
 }
 playHologramIntro();
 
